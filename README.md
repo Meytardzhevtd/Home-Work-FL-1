@@ -22,8 +22,6 @@ Telegram: [@T18345](https://t.me/@T18345)
 ---
 
 ## Сборка и запуск
-
-1. Клонировать репозиторий и перейти в директорию проекта:
    ```bash
    git clone git@github.com:Meytardzhevtd/Home-Work-FL-1.git
    cd Home-Work-FL-1
