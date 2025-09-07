@@ -1,6 +1,6 @@
 #define DOCTEST_CONFIG_IMPLEMENT_WITH_MAIN
-#include "../inc/NFA.hpp"
-#include "../inc/doctest.h"
+#include "NFA.hpp"
+#include "doctest.h"
 
 TEST_CASE("Task 1 Test 1") {
     homework_nfa::NFA nfa;

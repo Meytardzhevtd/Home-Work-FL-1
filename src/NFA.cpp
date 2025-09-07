@@ -1,4 +1,4 @@
-#include "../inc/NFA.hpp"
+#include "NFA.hpp"
 #include <fstream>
 #include <iostream>
 #include <queue>
