@@ -1,11 +1,12 @@
 #include "../inc/NFA.hpp"
-#include <algorithm>
 #include <fstream>
 #include <iostream>
 #include <queue>
 #include <set>
+#include <sstream>
 #include <string>
 #include <tuple>
+#include <vector>
 
 namespace homework_nfa {
 std::vector<int> parce_string(std::string input_string, char delimiter) {
@@ -68,7 +69,7 @@ void NFA::read_file(const std::string &file_path) {
         const int number = c - '0';
         std::set<int> new_states;
         for (const int current_state : current_states) {
-            if (transitions.count({current_state, number})) {
+            if (transitions.contains({current_state, number})) {
                 const auto &next_states =
                     transitions.at({current_state, number});
                 for (const int state : next_states) {
@@ -80,7 +81,7 @@ void NFA::read_file(const std::string &file_path) {
     }
 
     for (const int final_state : final_state_id) {
-        if (current_states.count(final_state)) {
+        if (current_states.contains(final_state)) {
             return true;
         }
     }
@@ -97,19 +98,19 @@ void NFA::read_file(const std::string &file_path) {
     q.push(start_state_id);
     while (!q.empty()) {
         auto current_state = q.front();
-        for (int state : current_state) {
-            if (final_state_id.count(state)) {
+        for (const int state : current_state) {
+            if (final_state_id.contains(state)) {
                 dfa_final_states.insert(state_to_id[current_state]);
             }
         }
         q.pop();
         for (int i = 0; i < m; ++i) {
             std::set<int> T;
-            for (int state : current_state) {
-                if (transitions.count({state, i})) {
+            for (const int state : current_state) {
+                if (transitions.contains({state, i})) {
                     auto it = transitions.find({state, i});
                     if (it != transitions.end()) {
-                        for (int cur_state : it->second) {
+                        for (const int cur_state : it->second) {
                             T.insert(cur_state);
                         }
                     }
@@ -118,11 +119,11 @@ void NFA::read_file(const std::string &file_path) {
             if (T.empty()) {
                 continue;
             }
-            if (!state_to_id.count(T)) {
+            if (!state_to_id.contains(T)) {
                 state_to_id[T] = id++;
                 q.push(T);
             }
-            dfa_transitions_list.push_back(
+            dfa_transitions_list.emplace_back(
                 std::make_tuple(state_to_id[current_state], i, state_to_id[T])
             );
         }
@@ -131,7 +132,7 @@ void NFA::read_file(const std::string &file_path) {
                          std::to_string(m) + '\n' +
                          std::to_string(state_to_id[start_state_id]) + '\n';
 
-    for (int state : dfa_final_states) {
+    for (const int state : dfa_final_states) {
         result += std::to_string(state) + ' ';
     }
     if (!result.empty() && result.back() == ' ') {

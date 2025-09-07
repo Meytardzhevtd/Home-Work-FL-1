@@ -1,10 +1,7 @@
-#include <fstream>
-#include <iostream>
 #include <map>
 #include <set>
-#include <sstream>
 #include <string>
-#include <tuple>
+#include <utility>
 #include <vector>
 
 namespace homework_nfa {
@@ -25,5 +22,7 @@ public:
     void read_file(const std::string &file_path);
 
     [[nodiscard]] bool simulate(const std::string &input) const;
+    [[nodiscard]] std::string toDFA() const;
+    void writeDFAtoFile(const std::string &file_path) const;
 };
 }  // namespace homework_nfa
