@@ -48,3 +48,23 @@ TEST_CASE("Task 1 Test 5") {
     CHECK(nfa.simulate("1440222222") == false);
     CHECK(nfa.simulate("2301022222") == false);
 }
+
+TEST_CASE("NFA to DFA equivalence") {
+    homework_nfa::NFA nfa;
+    nfa.read_file("../tests/Test15.txt");
+    nfa.writeDFAtoFile("../tests/GeneratedDFA.txt");
+
+    homework_nfa::NFA dfa;
+    dfa.read_file("../tests/GeneratedDFA.txt");
+
+    std::vector<std::string> test_cases = {
+        "",           "0",          "1",          "2",          "0321111111",
+        "1021111111", "2111111111", "1440211111", "2300321111", "52",
+        "000",        "111",        "444"
+    };
+
+    for (const auto &s : test_cases) {
+        CAPTURE(s);
+        CHECK(nfa.simulate(s) == dfa.simulate(s));
+    }
+}
