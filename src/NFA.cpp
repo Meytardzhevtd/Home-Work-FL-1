@@ -159,4 +159,178 @@ void NFA::writeDFAtoFile(const std::string &file_path) const {
     file << toDFA();
     file.close();
 }
+
+[[nodiscard]] std::string NFA::minimizeDFA() const {
+    std::string dfa_str = toDFA();
+    if (dfa_str.empty()) {
+        return "";
+    }
+    std::istringstream iss(dfa_str);
+    std::string line;
+    std::getline(iss, line);
+    int n = std::stoi(line);
+    std::getline(iss, line);
+    int m = std::stoi(line);
+    std::getline(iss, line);
+    int start_state = std::stoi(line);
+    std::getline(iss, line);
+    std::set<int> final_states;
+    if (!line.empty()) {
+        for (int s : parce_string(line)) {
+            final_states.insert(s);
+        }
+    }
+    std::vector<std::vector<int>> trans(n, std::vector<int>(m, -1));
+    while (std::getline(iss, line)) {
+        if (line.empty()) {
+            continue;
+        }
+        std::vector<int> parts = parce_string(line);
+        if (parts.size() == 3) {
+            int from = parts[0];
+            int sym = parts[1];
+            int to = parts[2];
+            trans[from][sym] = to;
+        }
+    }
+    std::vector<bool> reachable(n, false);
+    std::queue<int> q;
+    q.push(start_state);
+    reachable[start_state] = true;
+    while (!q.empty()) {
+        int u = q.front();
+        q.pop();
+        for (int c = 0; c < m; ++c) {
+            int v = trans[u][c];
+            if (v != -1 && !reachable[v]) {
+                reachable[v] = true;
+                q.push(v);
+            }
+        }
+    }
+    std::vector<int> old_to_new(n, -1);
+    std::vector<int> new_to_old;
+    for (int i = 0; i < n; ++i) {
+        if (reachable[i]) {
+            old_to_new[i] = static_cast<int>(new_to_old.size());
+            new_to_old.push_back(i);
+        }
+    }
+    int new_n = static_cast<int>(new_to_old.size());
+    if (new_n == 0) {
+        new_n = 1;
+        new_to_old = {start_state};
+        old_to_new[start_state] = 0;
+    }
+    int new_start = old_to_new[start_state];
+    std::set<int> new_final;
+    for (int s : final_states) {
+        if (old_to_new[s] != -1) {
+            new_final.insert(old_to_new[s]);
+        }
+    }
+    std::vector<std::vector<int>> new_trans(new_n, std::vector<int>(m, -1));
+    for (int i = 0; i < new_n; ++i) {
+        int old_i = new_to_old[i];
+        for (int c = 0; c < m; ++c) {
+            int old_next = trans[old_i][c];
+            if (old_next != -1 && old_to_new[old_next] != -1) {
+                new_trans[i][c] = old_to_new[old_next];
+            }
+        }
+    }
+    std::vector<int> color(new_n);
+    for (int i = 0; i < new_n; ++i) {
+        color[i] = (new_final.count(i) ? 1 : 0);
+    }
+
+    bool changed = true;
+    while (changed) {
+        changed = false;
+        std::map<std::vector<int>, std::vector<int>> groups;
+
+        for (int i = 0; i < new_n; ++i) {
+            std::vector<int> signature(m);
+            for (int c = 0; c < m; ++c) {
+                int next = new_trans[i][c];
+                signature[c] = (next == -1 ? -1 : color[next]);
+            }
+            groups[signature].push_back(i);
+        }
+
+        std::map<int, int> new_color;
+        int new_col = 0;
+        for (const auto &[sig, states] : groups) {
+            for (int s : states) {
+                if (new_color.find(color[s]) == new_color.end() ||
+                    new_color[color[s]] != new_col) {
+                    if (color[s] != new_col) {
+                        changed = true;
+                    }
+                }
+                new_color[s] = new_col;
+            }
+            new_col++;
+        }
+
+        for (int i = 0; i < new_n; ++i) {
+            color[i] = new_color[i];
+        }
+    }
+    std::map<int, std::vector<int>> classes;
+    for (int i = 0; i < new_n; ++i) {
+        classes[color[i]].push_back(i);
+    }
+    std::vector<int> state_to_class(new_n);
+    std::vector<int> class_rep;
+    for (const auto &[cls, states] : classes) {
+        int rep = *std::min_element(states.begin(), states.end());
+        class_rep.push_back(rep);
+        for (int s : states) {
+            state_to_class[s] = static_cast<int>(class_rep.size() - 1);
+        }
+    }
+
+    int min_n = static_cast<int>(classes.size());
+    int min_start = state_to_class[new_start];
+    std::set<int> min_final;
+    for (int s : new_final) {
+        min_final.insert(state_to_class[s]);
+    }
+    std::vector<std::tuple<int, int, int>> min_trans;
+    for (int cls = 0; cls < min_n; ++cls) {
+        int rep = class_rep[cls];
+        for (int c = 0; c < m; ++c) {
+            int next_old = new_trans[rep][c];
+            if (next_old != -1) {
+                int next_cls = state_to_class[next_old];
+                min_trans.emplace_back(cls, c, next_cls);
+            }
+        }
+    }
+    std::string result = std::to_string(min_n) + '\n' + std::to_string(m) +
+                         '\n' + std::to_string(min_start) + '\n';
+
+    for (int f : min_final) {
+        result += std::to_string(f) + ' ';
+    }
+    if (!min_final.empty()) {
+        result.pop_back();
+    }
+    result += '\n';
+
+    for (const auto &[from, sym, to] : min_trans) {
+        result += std::to_string(from) + ' ' + std::to_string(sym) + ' ' +
+                  std::to_string(to) + '\n';
+    }
+    if (!result.empty() && result.back() == '\n') {
+        result.pop_back();
+    }
+
+    return result;
+}
+
+[[nodiscard]] bool NFA::equal(const NFA &nfa1, const NFA &nfa2) {
+    return nfa1.minimizeDFA() == nfa2.minimizeDFA();
+}
 }  // namespace homework_nfa
