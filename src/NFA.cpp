@@ -333,4 +333,65 @@ void NFA::writeDFAtoFile(const std::string &file_path) const {
 [[nodiscard]] bool NFA::equal(const NFA &nfa1, const NFA &nfa2) {
     return nfa1.minimizeDFA() == nfa2.minimizeDFA();
 }
+
+[[nodiscard]] bool NFA::acceptsAllStrings(const NFA &nfa) const {
+    /*
+     * По идее нам просто надо минимизировать автомат и проверить, эквивалентен
+     * ли он тривиальному (то есть имеет одно состояние и все переходы из этого
+     * состояния в это же). Реши прокомментировать тк хз вроде бы и рабочий
+     * метод а вроде бы и не уверен в нем
+     */
+    std::string min_dfa_str = nfa.minimizeDFA();
+    if (min_dfa_str.empty()) {
+        return false;
+    }
+
+    std::istringstream iss(min_dfa_str);
+    std::string line;
+
+    std::getline(iss, line);
+    int n = std::stoi(line);
+
+    std::getline(iss, line);
+    int m = std::stoi(line);
+
+    std::getline(iss, line);
+    int start_state = std::stoi(line);
+
+    std::getline(iss, line);
+    std::set<int> final_states;
+    if (!line.empty()) {
+        for (int s : parce_string(line)) {
+            final_states.insert(s);
+        }
+    }
+    if (n != 1 || start_state != 0 || final_states.size() != 1 ||
+        !final_states.contains(0)) {
+        return false;
+    }
+    std::vector<std::vector<int>> trans(n, std::vector<int>(m, -1));
+    while (std::getline(iss, line)) {
+        if (line.empty()) {
+            continue;
+        }
+        std::vector<int> parts = parce_string(line);
+        if (parts.size() == 3) {
+            int from = parts[0];
+            int sym = parts[1];
+            int to = parts[2];
+            if (from != 0 || to != 0) {
+                return false;
+            }
+            trans[from][sym] = to;
+        }
+    }
+    for (int c = 0; c < m; ++c) {
+        if (trans[0][c] != 0) {
+            return false;
+        }
+    }
+
+    return true;
+}
+
 }  // namespace homework_nfa

@@ -23,6 +23,7 @@ public:
     [[nodiscard]] std::string toDFA() const;
     [[nodiscard]] std::string minimizeDFA() const;
     [[nodiscard]] bool equal(const NFA &nfa1, const NFA &nfa2);
+    [[nodiscard]] bool acceptsAllStrings(const NFA &nfa) const;
     void writeDFAtoFile(const std::string &file_path) const;
 };
 }  // namespace homework_nfa
